@@ -42,7 +42,7 @@
     "path": "shims/out-of-bounds-test.js"
   },
   "resources/glsl-constructor-tests-generator.js": {
-    "path": "shims/glsl-conformance-test.js"
+    "path": "shims/glsl-constructor-tests-generator.js"
   },
 
   "typedarrays/resources/typed-array-test-cases.js": {
