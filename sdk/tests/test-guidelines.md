@@ -15,32 +15,13 @@ the WebGL Working Group when "official" snapshots are taken.
 
 *   Please use the Khronos Group License (MIT)
 
-These lines appears at the top of every html and js file under sdk/tests/conformance
+These lines must appear in a comment at the top of every code file under sdk/tests/conformance
 
-    <!--
-    /*
-    ** Copyright (c) 2015 The Khronos Group Inc.
-    **
-    ** Permission is hereby granted, free of charge, to any person obtaining a
-    ** copy of this software and/or associated documentation files (the
-    ** "Materials"), to deal in the Materials without restriction, including
-    ** without limitation the rights to use, copy, modify, merge, publish,
-    ** distribute, sublicense, and/or sell copies of the Materials, and to
-    ** permit persons to whom the Materials are furnished to do so, subject to
-    ** the following conditions:
-    **
-    ** The above copyright notice and this permission notice shall be included
-    ** in all copies or substantial portions of the Materials.
-    **
-    ** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    ** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-    ** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    ** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-    ** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-    ** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    ** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-    */
-    -->
+```
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+```
 
 *   Please use code similar to the code in existing tests
 
@@ -100,6 +81,9 @@ These lines appears at the top of every html and js file under sdk/tests/conform
         *    If you need to wait for a composite call `WebGLTestUtils.waitForComposite`.
              As compositing is a browser specific thing this provides a central place to
              update all tests that rely on compositing to function.
+
+            *   If you don't care about composition, `wtu.dispatchPromise` makes it easy to
+                yield back to the event loop.
 
     *   Code/Tag Order
 
@@ -176,6 +160,6 @@ These lines appears at the top of every html and js file under sdk/tests/conform
     Each folder has a 00_test_list.txt file that lists the test in that folder.
     Each new test should be prefixed with the option `--min-version <version>` where
     version is 1 more than the newest official version. At the time of this writing
-    all new tests should be prefixed with `--min-version 1.0.4`
+    all new tests should be prefixed with `--min-version 1.0.4` or `--min-version 2.0.1`.
 
 

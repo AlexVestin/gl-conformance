@@ -192,10 +192,10 @@
 <xsl:template name="logo">
   <xsl:comment>begin-logo</xsl:comment>
   <div class="left">
-    <a href="http://webgl.org/"><img alt="WebGL" height="72" src="{concat($basepath,'/resources/WebGL-Logo.png')}" width="156" /></a>
+    <a href="http://webgl.org/"><img alt="WebGL" width="240" height="100" src="{concat($basepath,'/resources/WebGL-Logo.png')}" /></a>
   </div>
   <div class="right">
-    <a href="http://khronos.org/"><img alt="Khronos" height="60" src="{concat($basepath,'/resources/KhronosGroup-3D.png')}" width="220" /></a>
+    <a href="http://khronos.org/"><img alt="Khronos" width="336" height="80" src="{concat($basepath,'/resources/Khronos_100px_June18.png')}" /></a>
   </div>
   <div style="clear: both;">&#160;</div>
   <br/>
@@ -219,6 +219,10 @@
     </ul>
     </xsl:when>
   </xsl:choose>
+</xsl:template>
+
+<xsl:template match="subsumed" mode="depends">
+  <p> <xsl:apply-templates select="."/> </p>
 </xsl:template>
 
 <xsl:template match="removed" mode="depends">
@@ -339,9 +343,14 @@
               function.
             </li>
           </xsl:for-each>
+          <xsl:for-each select="input">
+            <li>
+                <code><xsl:call-template name="shader_variable"/></code> is a built-in input.
+            </li>
+          </xsl:for-each>
           <xsl:for-each select="output">
             <li>
-                <code><xsl:call-template name="shader_output"/></code> is a built-in output.
+                <code><xsl:call-template name="shader_variable"/></code> is a built-in output.
             </li>
           </xsl:for-each>
         </ul>
@@ -446,9 +455,12 @@
   <xsl:text>)</xsl:text>
 </xsl:template>
 
-<xsl:template name="shader_output">
+<xsl:template name="shader_variable">
   <xsl:value-of select="@type"/><xsl:text> </xsl:text>
   <xsl:value-of select="@name"/>
+  <xsl:if test="@suffix">
+    <xsl:value-of select="@suffix"/>
+  </xsl:if>
 </xsl:template>
 
 <xsl:template match="revision">

@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 GLSLConformanceTester = (function(){
 
@@ -70,15 +53,25 @@ var fShaderDB = {};
  * the parameters for one shader out, in which case the default shader will be
  * used.
  * vShaderSource: the source code for vertex shader
+ * vShaderId: id of an element containing vertex shader source code. Used if
+ *   vShaderSource is not specified.
  * vShaderSuccess: true if vertex shader compilation should
  *   succeed.
  * fShaderSource: the source code for fragment shader
+ * fShaderId: id of an element containing fragment shader source code. Used if
+ *   fShaderSource is not specified.
  * fShaderSuccess: true if fragment shader compilation should
  *   succeed.
  * linkSuccess: true if link should succeed
  * passMsg: msg to describe success condition.
  * render: if true render to unit quad. Green = success
- *
+ * uniforms: an array of objects specifying uniforms to set prior to rendering.
+ *   Each object should have the following keys:
+ *     name: uniform variable name in the shader source. Uniform location will
+ *       be queried based on its name.
+ *     functionName: name of the function used to set the uniform. For example:
+ *       'uniform1i'
+ *     value: value of the uniform to set.
  */
 function runOneTest(gl, info) {
   var passMsg = info.passMsg
@@ -224,7 +217,8 @@ function runOneTest(gl, info) {
       log("*** Error linking program '"+program+"':"+error);
     }
     if (!info.ignoreResults && linked != info.linkSuccess) {
-      testFailed("[unexpected link status] " + passMsg);
+      testFailed("[unexpected link status] (expected: " +
+                info.linkSuccess + ") " + passMsg);
       return;
     }
   } else {
@@ -256,6 +250,35 @@ function runOneTest(gl, info) {
   }
 
   gl.useProgram(program);
+
+  if (info.uniforms !== undefined) {
+    for (var i = 0; i < info.uniforms.length; ++i) {
+      var uniformLocation = gl.getUniformLocation(program, info.uniforms[i].name);
+      if (uniformLocation !== null) {
+        gl[info.uniforms[i].functionName](uniformLocation, info.uniforms[i].value);
+        debug(info.uniforms[i].name + ' set to ' + info.uniforms[i].value);
+      } else {
+        debug('uniform ' + info.uniforms[i].name + ' had null location and was not set');
+      }
+    }
+  }
+
+  if (info.uniformBlocks !== undefined) {
+    for (var i = 0; i < info.uniformBlocks.length; ++i) {
+      var uniformBlockIndex = gl.getUniformBlockIndex(program, info.uniformBlocks[i].name);
+      if (uniformBlockIndex !== null) {
+        gl.uniformBlockBinding(program, uniformBlockIndex, i);
+        debug(info.uniformBlocks[i].name + ' (index ' + uniformBlockIndex + ') bound to slot ' + i);
+
+        var uboValueBuffer = gl.createBuffer();
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, i, uboValueBuffer);
+        gl.bufferData(gl.UNIFORM_BUFFER, info.uniformBlocks[i].value, info.uniformBlocks[i].usage || gl.STATIC_DRAW);
+      } else {
+        debug('uniform block' + info.uniformBlocks[i].name + ' had null block index and was not set');
+      }
+    }
+  }
+
   wtu.setupUnitQuad(gl);
   wtu.clearAndDrawUnitQuad(gl);
 
@@ -269,7 +292,11 @@ function runOneTest(gl, info) {
   if (info.renderTolerance !== undefined) {
     tolerance = info.renderTolerance;
   }
-  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", tolerance);
+  if (info.renderColor !== undefined) {
+    wtu.checkCanvas(gl, info.renderColor, "should be expected color " + info.renderColor, tolerance);
+  } else {
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", tolerance);
+  }
 }
 
 function runTests(shaderInfos, opt_contextVersion) {
@@ -284,17 +311,11 @@ function runTests(shaderInfos, opt_contextVersion) {
     return;
   }
 
-  var testIndex = 0;
-  var runNextTest = function() {
-    if (testIndex == shaderInfos.length) {
-      finishTest();
-      return;
-    }
-
-    runOneTest(gl, shaderInfos[testIndex++]);
-    setTimeout(runNextTest, 1);
+  for (var i = 0; i < shaderInfos.length; i++) {
+    runOneTest(gl, shaderInfos[i]);
   }
-  runNextTest();
+
+  finishTest();
 };
 
 function getSource(elem) {

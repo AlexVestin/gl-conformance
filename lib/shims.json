@@ -34,5 +34,18 @@
   },
   "ogles/ogles-utils.js": {
     "path": "shims/ogles-utils.js"
+  },
+  "resources/oes-texture-float-and-half-float-linear.js": {
+    "path": "shims/oes-texture-float-and-half-float-linear.js"
+  },
+  "resources/out-of-bounds-test.js": {
+    "path": "shims/out-of-bounds-test.js"
+  },
+  "resources/glsl-constructor-tests-generator.js": {
+    "path": "shims/glsl-conformance-test.js"
+  },
+
+  "typedarrays/resources/typed-array-test-cases.js": {
+    "path": "shims/typed-array-test-cases.js"
   }
 }

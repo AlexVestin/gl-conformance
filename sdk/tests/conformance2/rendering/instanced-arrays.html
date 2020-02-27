@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -171,8 +150,12 @@ function runOutputTests() {
     wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstanced cannot have a count less than 0");
 
     gl.vertexAttribDivisor(positionLoc, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
-    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawArraysInstanced");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawArraysInstanced");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawArrays");
+    wtu.checkCanvas(gl, [0, 0, 0, 0], "Nothing should be drawn on the framebuffer when all attributes have non-zero divisors (not enough vertices per instance to form a triangle)");
     gl.vertexAttribDivisor(positionLoc, 0);
 
     gl.drawArraysInstanced(gl.POINTS, 0, 6, instanceCount);
@@ -209,8 +192,12 @@ function runOutputTests() {
     wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstanced cannot have a count less than 0");
 
     gl.vertexAttribDivisor(positionLoc, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
-    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "There must be at least one vertex attribute with a divisor of zero when calling drawElementsInstanced");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawElementsInstanced");
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawElements");
+    wtu.checkCanvas(gl, [0, 0, 0, 0], "Nothing should be drawn on the framebuffer when all attributes have non-zero divisors (not enough vertices per instance to form a triangle)");
     gl.vertexAttribDivisor(positionLoc, 0);
 
     gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, instanceCount);

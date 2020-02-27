@@ -215,7 +215,7 @@ var BrowserDetect = {
   urls: {
     "Chrome": {
       upgradeUrl: "http://www.google.com/support/chrome/bin/answer.py?answer=95346",
-      troubleshootingUrl: "http://www.google.com/support/chrome/bin/answer.py?answer=1220892"
+      troubleshootingUrl: "https://support.google.com/chrome#topic=7438008"
     },
     "Firefox": {
       upgradeUrl: "http://www.mozilla.com/en-US/firefox/new/",
@@ -247,11 +247,11 @@ var BrowserDetect = {
         },
         "Mac": {
           upgradeUrl: "http://www.webkit.org/",
-          troubleshootingUrl: "http://www.webkit.org/blog/919/webgl-draft-specification-now-available/"
+          troubleshootingUrl: "https://support.apple.com/kb/PH21426"
         }
       },
       upgradeUrl: "http://www.webkit.org/",
-      troubleshootingUrl: "http://www.webkit.org/blog/919/webgl-draft-specification-now-available/"
+      troubleshootingUrl: "https://support.apple.com/kb/PH21426"
     },
     "Explorer": {
       upgradeUrl: "http://www.microsoft.com/ie",

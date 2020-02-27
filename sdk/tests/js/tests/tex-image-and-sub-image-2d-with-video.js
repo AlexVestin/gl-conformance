@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 // This block needs to be outside the onload handler in order for this
@@ -32,7 +15,7 @@ var debug = function(msg) {
   old(msg);
 };
 
-function generateTest(internalFormat, pixelFormat, pixelType, prologue, resourcePath) {
+function generateTest(internalFormat, pixelFormat, pixelType, prologue, resourcePath, defaultContextVersion) {
     var wtu = WebGLTestUtils;
     var tiu = TexImageUtils;
     var gl = null;
@@ -43,15 +26,18 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     // Test each format separately because many browsers implement each
     // differently. Some might be GPU accelerated, some might not. Etc...
     var videos = [
-      { src: resourcePath + "red-green.mp4"         , type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', },
-      { src: resourcePath + "red-green.webmvp8.webm", type: 'video/webm; codecs="vp8, vorbis"',           },
-      { src: resourcePath + "red-green.theora.ogv",   type: 'video/ogg; codecs="theora, vorbis"',         },
+      { src: resourcePath + "red-green.mp4"           , type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', },
+      { src: resourcePath + "red-green.webmvp8.webm"  , type: 'video/webm; codecs="vp8, vorbis"',           },
+      { src: resourcePath + "red-green.bt601.vp9.webm", type: 'video/webm; codecs="vp9"',                   },
+      { src: resourcePath + "red-green.theora.ogv"    , type: 'video/ogg; codecs="theora, vorbis"',         },
     ];
 
     function init()
     {
         description('Verify texImage2D and texSubImage2D code paths taking video elements (' + internalFormat + '/' + pixelFormat + '/' + pixelType + ')');
 
+        // Set the default context version while still allowing the webglVersion URL query string to override it.
+        wtu.setDefault3DContextVersion(defaultContextVersion);
         gl = wtu.create3DContext("example");
 
         if (!prologue(gl)) {
@@ -64,6 +50,15 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
           case gl.RED_INTEGER:
             greenColor = [0, 0, 0];
             break;
+          case gl.LUMINANCE:
+          case gl.LUMINANCE_ALPHA:
+            redColor = [255, 255, 255];
+            greenColor = [0, 0, 0];
+            break;
+          case gl.ALPHA:
+            redColor = [0, 0, 0];
+            greenColor = [0, 0, 0];
+            break;
           default:
             break;
         }
@@ -74,11 +69,16 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         runTest();
     }
 
-    function runOneIteration(videoElement, useTexSubImage2D, flipY, topColor, bottomColor, program, bindingTarget)
+    function runOneIteration(videoElement, useTexSubImage2D, flipY, topColor, bottomColor, sourceSubRectangle, program, bindingTarget)
     {
+        sourceSubRectangleString = '';
+        if (sourceSubRectangle) {
+            sourceSubRectangleString = ' sourceSubRectangle=' + sourceSubRectangle;
+        }
         debug('Testing ' + (useTexSubImage2D ? 'texSubImage2D' : 'texImage2D') +
               ' with flipY=' + flipY + ' bindingTarget=' +
-              (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP'));
+              (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP') +
+              sourceSubRectangleString);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         // Disable any writes to the alpha channel
         gl.colorMask(1, 1, 1, 0);
@@ -102,24 +102,54 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                        gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
                        gl.TEXTURE_CUBE_MAP_NEGATIVE_Z];
         }
+        // Handle the source sub-rectangle if specified (WebGL 2.0 only)
+        if (sourceSubRectangle) {
+            gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, sourceSubRectangle[0]);
+            gl.pixelStorei(gl.UNPACK_SKIP_ROWS, sourceSubRectangle[1]);
+        }
         // Upload the videoElement into the texture
         for (var tt = 0; tt < targets.length; ++tt) {
-            // Initialize the texture to black first
-            if (useTexSubImage2D) {
-                var width = videoElement.videoWidth;
-                var height = videoElement.videoHeight;
-                if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
-                    // cube map texture must be square.
-                    width = Math.max(width, height);
-                    height = width;
+            if (sourceSubRectangle) {
+                // Initialize the texture to black first
+                if (useTexSubImage2D) {
+                    // Skip sub-rectangle tests for cube map textures for the moment.
+                    if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+                        continue;
+                    }
+                    gl.texImage2D(targets[tt], 0, gl[internalFormat],
+                                  sourceSubRectangle[2], sourceSubRectangle[3], 0,
+                                  gl[pixelFormat], gl[pixelType], null);
+                    gl.texSubImage2D(targets[tt], 0, 0, 0,
+                                     sourceSubRectangle[2], sourceSubRectangle[3],
+                                     gl[pixelFormat], gl[pixelType], videoElement);
+                } else {
+                    gl.texImage2D(targets[tt], 0, gl[internalFormat],
+                                  sourceSubRectangle[2], sourceSubRectangle[3], 0,
+                                  gl[pixelFormat], gl[pixelType], videoElement);
                 }
-                gl.texImage2D(targets[tt], 0, gl[internalFormat],
-                              width, height, 0,
-                              gl[pixelFormat], gl[pixelType], null);
-                gl.texSubImage2D(targets[tt], 0, 0, 0, gl[pixelFormat], gl[pixelType], videoElement);
             } else {
-                gl.texImage2D(targets[tt], 0, gl[internalFormat], gl[pixelFormat], gl[pixelType], videoElement);
+                // Initialize the texture to black first
+                if (useTexSubImage2D) {
+                    var width = videoElement.videoWidth;
+                    var height = videoElement.videoHeight;
+                    if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+                        // cube map texture must be square.
+                        width = Math.max(width, height);
+                        height = width;
+                    }
+                    gl.texImage2D(targets[tt], 0, gl[internalFormat],
+                                  width, height, 0,
+                                  gl[pixelFormat], gl[pixelType], null);
+                    gl.texSubImage2D(targets[tt], 0, 0, 0, gl[pixelFormat], gl[pixelType], videoElement);
+                } else {
+                    gl.texImage2D(targets[tt], 0, gl[internalFormat], gl[pixelFormat], gl[pixelType], videoElement);
+                }
             }
+        }
+
+        if (sourceSubRectangle) {
+            gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+            gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
         }
 
         var c = document.createElement("canvas");
@@ -143,7 +173,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
             // Check a few pixels near the top and bottom and make sure they have
             // the right color.
-            var tolerance = 5;
+            const tolerance = 6;
             debug("Checking lower left corner");
             wtu.checkCanvasRect(gl, 4, 4, 2, 2, bottomColor,
                                 "shouldBe " + bottomColor, tolerance);
@@ -161,6 +191,27 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             { sub: true, flipY: true, topColor: redColor, bottomColor: greenColor },
             { sub: true, flipY: false, topColor: greenColor, bottomColor: redColor },
         ];
+
+        if (wtu.getDefault3DContextVersion() > 1) {
+            cases = cases.concat([
+                { sub: false, flipY: false, topColor: redColor, bottomColor: redColor,
+                  sourceSubRectangle: [20, 16, 40, 32] },
+                { sub: false, flipY: true, topColor: greenColor, bottomColor: greenColor,
+                  sourceSubRectangle: [20, 16, 40, 32] },
+                { sub: false, flipY: false, topColor: greenColor, bottomColor: greenColor,
+                  sourceSubRectangle: [20, 80, 40, 32] },
+                { sub: false, flipY: true, topColor: redColor, bottomColor: redColor,
+                  sourceSubRectangle: [20, 80, 40, 32] },
+                { sub: true, flipY: false, topColor: redColor, bottomColor: redColor,
+                  sourceSubRectangle: [20, 16, 40, 32] },
+                { sub: true, flipY: true, topColor: greenColor, bottomColor: greenColor,
+                  sourceSubRectangle: [20, 16, 40, 32] },
+                { sub: true, flipY: false, topColor: greenColor, bottomColor: greenColor,
+                  sourceSubRectangle: [20, 80, 40, 32] },
+                { sub: true, flipY: true, topColor: redColor, bottomColor: redColor,
+                  sourceSubRectangle: [20, 80, 40, 32] },
+            ]);
+        }
 
         function runTexImageTest(bindingTarget) {
             var program;
@@ -187,6 +238,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                     debug("");
                     debug("testing: " + info.type);
                     video = document.createElement("video");
+                    video.muted = true;
                     var canPlay = true;
                     if (!video.canPlayType) {
                       testFailed("video.canPlayType required method missing");
@@ -207,12 +259,20 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                 }
                 function runTest() {
                     for (var i in cases) {
-                        // cube map texture must be square but video is not square.
-                        if (bindingTarget == gl.TEXTURE_2D || cases[i].sub == true) {
-                            runOneIteration(video, cases[i].sub, cases[i].flipY,
-                                            cases[i].topColor, cases[i].bottomColor,
-                                            program, bindingTarget);
+                        if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+                            // Cube map texture must be square but video is not square.
+                            if (!cases[i].sub) {
+                                break;
+                            }
+                            // Skip sub-rectangle tests for cube map textures for the moment.
+                            if (cases[i].sourceSubRectangle) {
+                                break;
+                            }
                         }
+                        runOneIteration(video, cases[i].sub, cases[i].flipY,
+                                        cases[i].topColor, cases[i].bottomColor,
+                                        cases[i].sourceSubRectangle,
+                                        program, bindingTarget);
                     }
                     runNextVideo();
                 }
